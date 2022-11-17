@@ -4,7 +4,7 @@ from time import ctime, time, sleep
 from vibor_new_dialog_based_other import Ui_MainWindow
 import datetime as dt
 from PyQt5.QtCore import Qt, QObject
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap
 from PIL import Image
 import sqlite3
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAbstractButton
@@ -15,6 +15,7 @@ PHOTOFORMATS = ['img', 'bmp', 'raw', 'png', 'jpg', 'jpeg', 'IMG', 'BMP', 'RAW', 
 
 class DupeError(BaseException):
     pass
+
 
 days = {
     'Jan': '01',
@@ -31,15 +32,6 @@ days = {
     'Dec': '12'
 }
 
-
-# async def componented_less_variety(in_path, out_path):
-# #     im = Image.open(in_path)
-# #     x, y = im.size
-# #
-# #     im2 = im.resize((x // 3, y // 3))
-# #     print(f"{out_path} saved")
-# #     im2.save(out_path)
-# #     await asyncio.sleep(1/10000)
 
 def get_formated_date(data):
     not_date = list(filter(lambda x: x != '', ctime(data).split(' ')))
@@ -74,6 +66,7 @@ class Example(QMainWindow, Ui_MainWindow):
         self.deselect_button.clicked.connect(self.deselect)
         self.delete_selected_img_button.clicked.connect(self.delete_image)
         self.go_end_button.clicked.connect(self.change_img_preview)
+        self.add_images_from_folder_button.clicked.connect(self.add_image)
         self.run()
         self.showNormal()
 
@@ -105,15 +98,12 @@ class Example(QMainWindow, Ui_MainWindow):
         self.preview_sizes = (self.preview_size.width(), self.preview_size.height())
         if self.current_selection:
             self.preview_position = self.preview_position % len(self.current_selection)
-            # self.current_image_path = self.min_path
-            # self.true_path = self.current_selection[self.preview_position][-1]
-            self.name_out_label.setText(f"{self.preview_position + 1}/{len(self.current_selection)}, {self.current_selection[self.preview_position][1]}")
+            self.name_out_label.setText(
+                f"{self.preview_position + 1}/{len(self.current_selection)},"
+                f" {self.current_selection[self.preview_position][1]}")
             self.pixmap = QPixmap(self.current_selection[self.preview_position][-1])
             self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.image_label.setPixmap(self.pixmap)
-            # self.pixmap = QPixmap(self.current_image_path)
-            # self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
-            # self.image_label.setPixmap(self.pixmap)
 
     def change_img_preview(self):
         if self.sender().text() == '<-':
@@ -136,6 +126,7 @@ class Example(QMainWindow, Ui_MainWindow):
             else:
                 tags_dupped.append(_)
 
+
         imgs_duped = []
         already_imgs = []
         for _ in self.images:
@@ -154,7 +145,6 @@ class Example(QMainWindow, Ui_MainWindow):
                 QMessageBox.Yes, QMessageBox.No)
             if valid == QMessageBox.Yes:
                 for _ in tags_dupped:
-                    # self.log_out_label.setText(f"Тэг {_[1]} удалён")
                     self.curs.execute(
                         f'''delete from tags where id = '{_[0]}' 
 ''').fetchall()
@@ -163,7 +153,6 @@ class Example(QMainWindow, Ui_MainWindow):
                     self.log_out_label.setText('Дубли были удалены из тэгов.')
         elif not tags_dupped:
             self.log_out_label.setText('Дублей нет в тэгах.')
-
 
         if imgs_duped:
             valid = QMessageBox.question(
@@ -180,15 +169,11 @@ class Example(QMainWindow, Ui_MainWindow):
                     self.log_out_label.setText('Дубли были удалены из изображений')
         elif not imgs_duped:
             self.log_out_label.setText('Дублей нет в изображениях.')
-
-
-            # self.check_box_initialize()
-                    # dupped_buff = self.curs.execute(f'''SELECT id FROM tags WHERE name = '{_}'
-                    # ''').fetchall()
-                    # print(dupped_buff)
+        self.deselect()
+        self.initialize_base()
+        self.table_widget_initialize()
 
     def keyPressEvent(self, event):
-        # print(event.key())
         if all(list(map(lambda x: x.isEnabled(), self.navigation_arrows_button_group.buttons()))):
             kb_key = event.key()
             corners = [91, 93]
@@ -224,6 +209,13 @@ class Example(QMainWindow, Ui_MainWindow):
         if valid == QMessageBox.Yes:
             self.add_folder()
 
+    def go_add_or_not_dialogue_image_add(self):
+        valid = QMessageBox.question(
+            self, '', "Возникла ошибка при добавлении изображения(ий). Попробовать еще раз?",
+            QMessageBox.Yes, QMessageBox.No)
+        if valid == QMessageBox.Yes:
+            self.add_image()
+
     def go_add_or_not_dialogue_tag_add(self):
         valid = QMessageBox.question(
             self, '', "Возникла ошибка при добавлении тэга. Попробуйте еще раз.",
@@ -232,62 +224,35 @@ class Example(QMainWindow, Ui_MainWindow):
             pass
 
     def add_folder(self):
+        self.deselect()
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFiles)
         try:
-            self.dir_name = dialog.getExistingDirectory(self, 'Выбрать путь к папке')
-            # print(self.dir_name)
-            photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(map(lambda y: [self.dir_name + '/' + y, y.split('.')[-1]], (filter(lambda x: x[0] != '.' and '.' in x, os.listdir(path=self.dir_name)))))))
+            self.dir_name = dialog.getExistingDirectory(self, 'Выбрать путь к папке с изображениями')
+            photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(
+                map(lambda y: [self.dir_name + '/' + y, y.split('.')[-1]],
+                    (filter(lambda x: x[0] != '.' and '.' in x, os.listdir(path=self.dir_name)))))))
             print(photo_files)
 
             if not photo_files:
                 raise ImportError('В папке нет изображений. Выберите папку с изображениями.')
             if self.images:
-                # dupes_count = 0
-                # dupes = []
-                # for __ in photo_files:
-                #     path, tip = __
-                #     dupe_proof = self.curs.execute(
-                #         f'''SELECT id from images where path = '{path}' and type = '{tip}'
-                #     ''').fetchall()
-                #     print(dupe_proof)
-                #     if dupe_proof:
-                #         dupes_count += 1
-                #         dupes.append(__)
-                # duped = list(map(lambda x: x[0], photo_files))
-                # s_imgs_formated = list(map(lambda z: z[1], self.images))
-                imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)), list(map(lambda x: x[0], photo_files))))
+                imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
+                                         list(map(lambda x: x[0], photo_files))))
                 print(imgs_duped)
-                # print(s_imgs_formated)
-                # for _ in photo_files:
-                #     if _[0] in list(map(lambda x: x[1], self.images)):
-                #         imgs_duped.append(_[0])
                 if imgs_duped == photo_files:
                     raise DupeError('Все изображения в папке уже добавлены.')
                 else:
                     photo_files = list(filter(lambda x: x not in imgs_duped, photo_files))
 
-                # dupe_proof = self.curs.execute(
-                #     f'''SELECT id from images where path = '{path}' and type = '{type}' and creation_date = '{c_date}' and modified_date = '{m_date}' and mini_path = '{mini_path}'
-                # ''').fetchall()
-
             for _ in photo_files:
-                # print(_)
                 o_p = self.create_miniature(_[0])
                 file_stat = os.stat(_[0])
                 _.extend([get_formated_date(file_stat.st_mtime), get_formated_date(file_stat.st_ctime), o_p])
-                # print(_)
-            # print(photo_files)
-
-
 
             self.formated_infos = photo_files
-            # print(self.formated_infos)
             self.add_images_to_base(self.formated_infos)
             self.table_widget_initialize()
-
-            # if not self.formated_infos:
-            #     raise ImportError('В папке нет изображений. Выберите папку с изображениями.')
 
         except FileNotFoundError:
             self.log_out_label.setText('Некорректно указана директория папки с изображениями')
@@ -301,6 +266,51 @@ class Example(QMainWindow, Ui_MainWindow):
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_folder_add()
 
+    def add_image(self):
+        self.deselect()
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.ExistingFiles)
+        try:
+            image_path = dialog.getOpenFileNames(self, 'Выбрать путь к изображению(ям)')[0]
+            photo_files = list(map(lambda u: u[0], list(filter(lambda z: z[1] in PHOTOFORMATS, list(
+                map(lambda y: [y, y.split('.')[-1]],
+                    (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))))
+            print(photo_files)
+
+            if not photo_files:
+                raise ImportError('Выбранный файл не является изображением(ями).')
+            if self.images:
+                imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
+                                         list(map(lambda x: x, photo_files))))
+                print(imgs_duped)
+
+                if imgs_duped == photo_files:
+                    raise DupeError('Выбранный файл уже добавлен(ы).')
+                else:
+                    photo_files = list(filter(lambda x: x not in imgs_duped, photo_files[0]))
+
+            for _ in photo_files:
+                o_p = self.create_miniature(_[0])
+                file_stat = os.stat(_[0])
+                _.extend([get_formated_date(file_stat.st_mtime), get_formated_date(file_stat.st_ctime), o_p])
+
+            self.formated_infos = photo_files
+            self.add_images_to_base(self.formated_infos)
+            self.table_widget_initialize()
+
+        except FileNotFoundError:
+            self.log_out_label.setText('Некорректно указан путь к изображению(ям)')
+            self.go_add_or_not_dialogue_image_add()
+
+        except ImportError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.go_add_or_not_dialogue_image_add()
+
+        except DupeError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.go_add_or_not_dialogue_image_add()
+
+
     def initialize_base(self):
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
@@ -309,7 +319,6 @@ class Example(QMainWindow, Ui_MainWindow):
         if not os.path.exists(self.base_path):
             try:
                 self.base_path = dialog.getOpenFileName(self, 'Выберите путь к базе')[0]
-                # print(self.base_path)
                 if self.base_path == '':
                     raise ValueError('Путь к базе не найден')
                 elif self.base_path.split('.')[-1] != 'sqlite':
@@ -330,9 +339,6 @@ class Example(QMainWindow, Ui_MainWindow):
         self.image_tags = list(self.curs.execute('''select * from image_tags'''))
 
         self.check_box_initialize()
-
-        # if not self.images:
-        #     self.add_folder()
 
     def add_tag(self):
         try:
@@ -364,7 +370,8 @@ class Example(QMainWindow, Ui_MainWindow):
             QMessageBox.Yes, QMessageBox.No)
         if valid == QMessageBox.Yes:
             self.log_out_label.setText(f"Тэг {tag_name} удалён")
-            self.curs.execute(f'''delete from tags where id = (SELECT id from tags where name = '{tag_name}')''').fetchall()
+            self.curs.execute(
+                f'''delete from tags where id = (SELECT id from tags where name = '{tag_name}')''').fetchall()
             self.base_conection.commit()
             self.initialize_base()
 
@@ -389,17 +396,16 @@ class Example(QMainWindow, Ui_MainWindow):
             self.current_selection = []
             self.tableWidget.setColumnCount(0)
             self.tableWidget.setRowCount(0)
-            # self.repair_autoincrement()
             self.initialize_base()
             self.deselect()
             if not self.images:
                 self.log_out_label.setText('Изображения были удалены.')
+                self.repair_autoincrement()
                 sleep(1.0)
+                self.dupe_check_button.setEnabled(False)
                 self.log_out_label.setText('База изображений пуста. Добавьте изображения(е).')
             else:
                 self.log_out_label.setText('Изображения были удалены.')
-
-            # self.run()
 
     def deselect(self):
         self.tableWidget.clearSelection()
@@ -440,6 +446,7 @@ class Example(QMainWindow, Ui_MainWindow):
         res = self.curs.execute("SELECT * from images").fetchall()
         if not res:
             self.name_out_label.setText('Изображения не найдены')
+            self.dupe_check_button.setEnabled(False)
             self.add_folder()
         else:
             self.name_out_label.setText('')
@@ -450,10 +457,16 @@ class Example(QMainWindow, Ui_MainWindow):
                 for j, val in enumerate(elem):
                     self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
             self.tableWidget.setHorizontalHeaderLabels(self.titles)
+            self.dupe_check_button.setEnabled(True)
 
     def repair_autoincrement(self):
         if not self.tags:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'tags'
+            ''').fetchall()
+            self.base_conection.commit()
+
+        elif not self.tags:
+            self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM tags) - 1 WHERE name = 'tags'
             ''').fetchall()
             self.base_conection.commit()
 
@@ -462,13 +475,24 @@ class Example(QMainWindow, Ui_MainWindow):
             ''').fetchall()
             self.base_conection.commit()
 
+        elif not self.tags:
+            self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM images) - 1 WHERE name = 'images'
+            ''').fetchall()
+            self.base_conection.commit()
+
         if not self.image_tags:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'image_tags'
             ''').fetchall()
             self.base_conection.commit()
 
+        elif not self.tags:
+            self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM image_tags) - 1 WHERE name = 'image_tags'
+            ''').fetchall()
+            self.base_conection.commit()
+
     def run(self):
         self.repair_autoincrement()
+        # self.initialize_base()
         print(self.images)
         self.run_time = get_formated_date(time()).split(' ')[::]
         # print(self.run_time)
@@ -488,5 +512,4 @@ if __name__ == '__main__':
     ex.show()
     sys.exit(app.exec_())
 
-
-# TO DO: написать комментарии. Придумать второе окно, и главное окно. Придумать штуку с тегами. Асинхронность доделать
+# TO DO: написать комментарии. Придумать второе окно, и главное окно. Придумать штуку с тегами.
