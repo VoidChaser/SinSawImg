@@ -67,6 +67,9 @@ class Example(QMainWindow, Ui_MainWindow):
         self.delete_selected_img_button.clicked.connect(self.delete_image)
         self.go_end_button.clicked.connect(self.change_img_preview)
         self.add_images_from_folder_button.clicked.connect(self.add_image)
+        self.add_one_tag_button.clicked.connect(self.add_single_image_tag)
+        self.add_all_tag_button.clicked.connect(self.add_all_image_tag)
+        self.del_one_tag_button.clicked.connect(self.delete_single_image_tag)
         self.run()
         self.showNormal()
 
@@ -101,6 +104,12 @@ class Example(QMainWindow, Ui_MainWindow):
             self.name_out_label.setText(
                 f"{self.preview_position + 1}/{len(self.current_selection)},"
                 f" {self.current_selection[self.preview_position][1]}")
+            im_id = self.current_selection[self.preview_position][0]
+            current_tags = self.curs.execute(f'''SELECT name from tags WHERE id in (SELECT id_tag from image_tags WHERE id_image = '{im_id}')
+            ORDER BY id''').fetchall()
+            current_tags = list(map(lambda x: x[0], current_tags))
+            print(current_tags)
+            self.tag_name_label.setText(" Тэги: " + ', '.join(current_tags))
             self.pixmap = QPixmap(self.current_selection[self.preview_position][-1])
             self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.image_label.setPixmap(self.pixmap)
@@ -362,6 +371,94 @@ class Example(QMainWindow, Ui_MainWindow):
         except ValueError as exeption:
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_tag_add()
+
+    def add_single_image_tag(self, mode=False):
+        unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
+        # print(unformated_selection)
+        # print(self.preview_position)
+        formated_selection = []
+        for _ in range(0, len(unformated_selection), 6):
+            formated_selection.append(unformated_selection[_:_ + 6])
+        # print(formated_selection)
+        if not mode:
+            current_image = formated_selection[self.preview_position]
+            current_tag = self.tag_choose_box.currentText()
+            print(current_image)
+            im_id = current_image[0]
+            print(current_tag)
+            print(im_id)
+            tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
+            ''').fetchall()[0][0]
+            print(tag_id)
+            self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
+            VALUES (?, ?)
+            ''', (im_id, tag_id)).fetchall()
+            self.base_conection.commit()
+            self.log_out_label.setText('Тэг был установлен.')
+        else:
+            current_tag = self.tag_choose_box.currentText()
+            tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
+                    ''').fetchall()[0][0]
+            print(tag_id)
+            for _ in formated_selection:
+                print(_)
+                im_id = _[0]
+                print(current_tag)
+                print(im_id)
+                self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
+                            VALUES (?, ?)
+                        ''', (im_id, tag_id)).fetchall()
+                self.base_conection.commit()
+            self.log_out_label.setText('Тэги были установлены.')
+        self.initialize_base()
+        self.deselect()
+
+    def delete_single_image_tag(self, mode=False):
+        unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
+        # print(unformated_selection)
+        # print(self.preview_position)
+        formated_selection = []
+        for _ in range(0, len(unformated_selection), 6):
+            formated_selection.append(unformated_selection[_:_ + 6])
+        # print(formated_selection)
+        if not mode:
+            current_image = formated_selection[self.preview_position]
+            current_tag = self.tag_choose_box.currentText()
+            print(current_image)
+            im_id = current_image[0]
+            print(current_tag)
+            print(im_id)
+            tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
+                    ''').fetchall()[0][0]
+            print(tag_id)
+            # self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
+            #         VALUES (?, ?)
+            #         ''', (im_id, tag_id)).fetchall()
+            # self.base_conection.commit()
+        # else:
+        #     current_tag = self.tag_choose_box.currentText()
+        #     tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
+        #                     ''').fetchall()[0][0]
+        #     print(tag_id)
+        #     for _ in formated_selection:
+        #         print(_)
+        #         im_id = _[0]
+        #         print(current_tag)
+        #         print(im_id)
+        #         self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
+        #                             VALUES (?, ?)
+        #                         ''', (im_id, tag_id)).fetchall()
+        #         self.base_conection.commit()
+        # self.log_out_label.setText('Тэги были удалены.')
+        # self.initialize_base()
+        # self.deselect()
+
+
+    def add_all_image_tag(self):
+        self.add_single_image_tag(mode=True)
+
+
+
 
     def delete_tag(self):
         tag_name = self.tag_choose_box.currentText()

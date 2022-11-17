@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1243</width>
+    <width>1313</width>
     <height>749</height>
    </rect>
   </property>
@@ -294,12 +294,19 @@
             <item>
              <widget class="QLabel" name="tag_name_label">
               <property name="text">
-               <string>Имя тэга:</string>
+               <string> Тэги:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="tag_name_edit"/>
+             <widget class="QLineEdit" name="tag_name_edit">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
             </item>
             <item>
              <widget class="QPushButton" name="add_tag_button">
@@ -324,6 +331,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QLabel" name="current_tag_label">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
               <property name="text">
                <string/>
               </property>
@@ -406,7 +416,7 @@
                  <bool>false</bool>
                 </property>
                 <property name="text">
-                 <string>Удалить тэг этого элемента</string>
+                 <string>У-ь все выб-й тэг элемента</string>
                 </property>
                 <attribute name="buttonGroup">
                  <string notr="true">tag_redact_button_group</string>
@@ -419,7 +429,37 @@
                  <bool>false</bool>
                 </property>
                 <property name="text">
-                 <string>Удалить тэги всех выбранных элементов</string>
+                 <string>У-ь выб-й тэг у всех элементов</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">tag_redact_button_group</string>
+                </attribute>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_7">
+              <item>
+               <widget class="QPushButton" name="del_all_tags_of_single_element_button">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="text">
+                 <string>У-ь все тэги элемента</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">tag_redact_button_group</string>
+                </attribute>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="del_all_tags_of_all_elements_button">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="text">
+                 <string>У-ь все тэги всех элементов</string>
                 </property>
                 <attribute name="buttonGroup">
                  <string notr="true">tag_redact_button_group</string>
@@ -550,7 +590,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1243</width>
+     <width>1313</width>
      <height>21</height>
     </rect>
    </property>
@@ -560,8 +600,8 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="tag_redact_button_group"/>
   <buttongroup name="navigation_arrows_button_group"/>
   <buttongroup name="selected_manipulations_button_group"/>
+  <buttongroup name="tag_redact_button_group"/>
  </buttongroups>
 </ui>
