@@ -238,7 +238,6 @@ class Ui_MainWindow(object):
         self.dupe_check_button = QtWidgets.QPushButton(self.centralwidget)
         self.dupe_check_button.setEnabled(False)
         self.dupe_check_button.setObjectName("dupe_check_button")
-        self.selected_manipulations_button_group.addButton(self.dupe_check_button)
         self.verticalLayout_6.addWidget(self.dupe_check_button)
         self.verticalLayout.addLayout(self.verticalLayout_6)
         self.log_out_label = QtWidgets.QLabel(self.centralwidget)
