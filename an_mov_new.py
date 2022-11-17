@@ -45,14 +45,17 @@ class Example(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.buffered_tag_index = 0
         self.initialize_base()
         self.tableWidget.itemSelectionChanged.connect(self.show_selected_items)
         self.current_selection = []
+        self.current_selected_tag_index = 0
         self.min_path = ''
         self.current_image_path = ''
         self.imported_dirs = []
         self.preview_position = 0
         self.formated_infos = []
+
 
         self.cornerbutton = QObject.findChild(self.tableWidget, QAbstractButton)
         self.cornerbutton.clicked.connect(self.show_selected_items)
@@ -69,7 +72,10 @@ class Example(QMainWindow, Ui_MainWindow):
         self.add_images_from_folder_button.clicked.connect(self.add_image)
         self.add_one_tag_button.clicked.connect(self.add_single_image_tag)
         self.add_all_tag_button.clicked.connect(self.add_all_image_tag)
-        self.del_one_tag_button.clicked.connect(self.delete_single_image_tag)
+        self.del_one_tag_button.clicked.connect(self.delete_selected_one_image_tag)
+        self.del_all_tag_button.clicked.connect(self.delete_selected_all_image_tag)
+        self.del_all_tags_of_single_element_button.clicked.connect(self.delete_all_one_image_tags)
+        self.del_all_tags_of_all_elements_button.clicked.connect(self.delete_all_all_images_tags)
         self.run()
         self.showNormal()
 
@@ -104,10 +110,14 @@ class Example(QMainWindow, Ui_MainWindow):
             self.name_out_label.setText(
                 f"{self.preview_position + 1}/{len(self.current_selection)},"
                 f" {self.current_selection[self.preview_position][1]}")
-            im_id = self.current_selection[self.preview_position][0]
-            current_tags = self.curs.execute(f'''SELECT name from tags WHERE id in (SELECT id_tag from image_tags WHERE id_image = '{im_id}')
+            # if self.tag_choose_box.currentIndex() == 0:
+            #     self.current_selected_tag_index = self.tag_choose_box.currentIndex()
+            # self.tag_choose_box.setCurrentIndex(self.current_selected_tag_index)
+
+            self.cur_im_id = self.current_selection[self.preview_position][0]
+            self.current_tags = self.curs.execute(f'''SELECT name from tags WHERE id in (SELECT id_tag from image_tags WHERE id_image = '{self.cur_im_id}')
             ORDER BY id''').fetchall()
-            current_tags = list(map(lambda x: x[0], current_tags))
+            current_tags = list(map(lambda x: x[0], self.current_tags))
             print(current_tags)
             self.tag_name_label.setText(" Тэги: " + ', '.join(current_tags))
             self.pixmap = QPixmap(self.current_selection[self.preview_position][-1])
@@ -252,7 +262,7 @@ class Example(QMainWindow, Ui_MainWindow):
                 if imgs_duped == photo_files:
                     raise DupeError('Все изображения в папке уже добавлены.')
                 else:
-                    photo_files = list(filter(lambda x: x not in imgs_duped, photo_files))
+                    photo_files = list(filter(lambda x: x[0] not in imgs_duped, photo_files))
 
             for _ in photo_files:
                 o_p = self.create_miniature(_[0])
@@ -275,36 +285,87 @@ class Example(QMainWindow, Ui_MainWindow):
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_folder_add()
 
+
+    def add_tag(self):
+        try:
+            tag_name = self.tag_name_edit.text()
+            if tag_name == '':
+                raise ValueError('Имя тэга не указано.')
+            tag_names = list(map(lambda x: x[1], self.tags))
+            if tag_name not in tag_names:
+                self.tag_name_edit.setText('')
+                self.log_out_label.setText(f"Тэг {tag_name} добавлен")
+                self.curs.execute(f'''INSERT INTO tags (name)
+        VALUES ('{tag_name}');''').fetchall()
+                self.base_conection.commit()
+                self.initialize_base()
+            else:
+                raise DupeError('Тэг с таким именем уже существует. Он не был добавлен.')
+        except DupeError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.tag_name_edit.setText('')
+            self.go_add_or_not_dialogue_tag_add()
+        except ValueError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.go_add_or_not_dialogue_tag_add()
+
+
     def add_image(self):
         self.deselect()
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFiles)
         try:
             image_path = dialog.getOpenFileNames(self, 'Выбрать путь к изображению(ям)')[0]
-            photo_files = list(map(lambda u: u[0], list(filter(lambda z: z[1] in PHOTOFORMATS, list(
-                map(lambda y: [y, y.split('.')[-1]],
-                    (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))))
-            print(photo_files)
-
+            if len(image_path) == 1:
+                # for _ in image_path:
+                #     print(_)
+                # photo_files = list(map(lambda x: x[0], image_path))
+                photo_files = list(map(lambda u: u, list(filter(lambda z: z[1] in PHOTOFORMATS, list(
+                    map(lambda y: [y, y.split('.')[-1]],
+                        (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))))
+                print(photo_files)
+            else:
+                photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(
+                    map(lambda y: [y, y.split('.')[-1]],
+                        (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))
+                print(photo_files)
+            #
             if not photo_files:
                 raise ImportError('Выбранный файл не является изображением(ями).')
+
             if self.images:
-                imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
-                                         list(map(lambda x: x, photo_files))))
-                print(imgs_duped)
+                if len(photo_files) == 1:
+                    imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)), list(map(lambda x: x, photo_files[0]))))
+                    print(imgs_duped)
+                    if imgs_duped[0] == photo_files[0][0]:
+                        raise DupeError('Выбранный файл уже добавлен(ы).')
 
-                if imgs_duped == photo_files:
-                    raise DupeError('Выбранный файл уже добавлен(ы).')
+                    else:
+                        photo_files = list(filter(lambda x: x[0] not in imgs_duped, photo_files))
                 else:
-                    photo_files = list(filter(lambda x: x not in imgs_duped, photo_files[0]))
+                    imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)), list(map(lambda x: x[0], photo_files))))
+                    print(imgs_duped)
+                    if imgs_duped[0] == photo_files[0][0]:
+                        raise DupeError('Выбранный файл уже добавлен(ы).')
 
+                    else:
+                        photo_files = list(filter(lambda x: x[0] not in imgs_duped, photo_files))
+
+            #             else:
+            #                 photo_files = list(filter(lambda x: x not in imgs_duped, photo_files))
+            #
             for _ in photo_files:
-                o_p = self.create_miniature(_[0])
-                file_stat = os.stat(_[0])
+                # photo_files = list(filter(lambda x: x not in imgs_duped, photo_files))
+                path = _[0]
+                o_p = self.create_miniature(path)
+                file_stat = os.stat(path)
                 _.extend([get_formated_date(file_stat.st_mtime), get_formated_date(file_stat.st_ctime), o_p])
+
+
 
             self.formated_infos = photo_files
             self.add_images_to_base(self.formated_infos)
+            self.log_out_label.setText("Изображения добавлены.")
             self.table_widget_initialize()
 
         except FileNotFoundError:
@@ -318,7 +379,6 @@ class Example(QMainWindow, Ui_MainWindow):
         except DupeError as exeption:
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_image_add()
-
 
     def initialize_base(self):
         dialog = QFileDialog()
@@ -348,29 +408,6 @@ class Example(QMainWindow, Ui_MainWindow):
         self.image_tags = list(self.curs.execute('''select * from image_tags'''))
 
         self.check_box_initialize()
-
-    def add_tag(self):
-        try:
-            tag_name = self.tag_name_edit.text()
-            if tag_name == '':
-                raise ValueError('Имя тэга не указано.')
-            tag_names = list(map(lambda x: x[1], self.tags))
-            if tag_name not in tag_names:
-                self.tag_name_edit.setText('')
-                self.log_out_label.setText(f"Тэг {tag_name} добавлен")
-                self.curs.execute(f'''INSERT INTO tags (name)
-        VALUES ('{tag_name}');''').fetchall()
-                self.base_conection.commit()
-                self.initialize_base()
-            else:
-                raise DupeError('Тэг с таким именем уже существует. Он не был добавлен.')
-        except DupeError as exeption:
-            self.log_out_label.setText(str(exeption))
-            self.tag_name_edit.setText('')
-            self.go_add_or_not_dialogue_tag_add()
-        except ValueError as exeption:
-            self.log_out_label.setText(str(exeption))
-            self.go_add_or_not_dialogue_tag_add()
 
     def add_single_image_tag(self, mode=False):
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
@@ -409,56 +446,76 @@ class Example(QMainWindow, Ui_MainWindow):
                             VALUES (?, ?)
                         ''', (im_id, tag_id)).fetchall()
                 self.base_conection.commit()
-            self.log_out_label.setText('Тэги были установлены.')
+        self.log_out_label.setText('Тэги были установлены.')
         self.initialize_base()
-        self.deselect()
-
-    def delete_single_image_tag(self, mode=False):
-        unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
-        # print(unformated_selection)
-        # print(self.preview_position)
-        formated_selection = []
-        for _ in range(0, len(unformated_selection), 6):
-            formated_selection.append(unformated_selection[_:_ + 6])
-        # print(formated_selection)
-        if not mode:
-            current_image = formated_selection[self.preview_position]
-            current_tag = self.tag_choose_box.currentText()
-            print(current_image)
-            im_id = current_image[0]
-            print(current_tag)
-            print(im_id)
-            tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
-                    ''').fetchall()[0][0]
-            print(tag_id)
-            # self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
-            #         VALUES (?, ?)
-            #         ''', (im_id, tag_id)).fetchall()
-            # self.base_conection.commit()
-        # else:
-        #     current_tag = self.tag_choose_box.currentText()
-        #     tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
-        #                     ''').fetchall()[0][0]
-        #     print(tag_id)
-        #     for _ in formated_selection:
-        #         print(_)
-        #         im_id = _[0]
-        #         print(current_tag)
-        #         print(im_id)
-        #         self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
-        #                             VALUES (?, ?)
-        #                         ''', (im_id, tag_id)).fetchall()
-        #         self.base_conection.commit()
-        # self.log_out_label.setText('Тэги были удалены.')
-        # self.initialize_base()
-        # self.deselect()
-
+        self.show_imgs_preview()
 
     def add_all_image_tag(self):
         self.add_single_image_tag(mode=True)
 
+    def delete_selected_one_image_tag(self, mode=False):
+        self.box_choosen_tag = self.tag_choose_box.currentText()
+        self.box_choosen_tag_id = self.curs.execute(f'''
+                            SELECT id from tags WHERE id = (SELECT id FROM tags WHERE name = '{self.box_choosen_tag}')            
+                            ''').fetchall()[0][0]
+        print(self.box_choosen_tag_id)
+        unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
+        formated_selection = []
+        for _ in range(0, len(unformated_selection), 6):
+            formated_selection.append(unformated_selection[_:_ + 6])
+        if not mode:
+            current_image = self.cur_im_id
+            current_tag = self.tag_choose_box.currentText()
+            print(current_image)
+            self.curs.execute(f'''
+            DELETE FROM image_tags WHERE id_image = '{self.cur_im_id}' AND id_tag = '{self.box_choosen_tag_id}'
+            ''')
+            self.base_conection.commit()
+            self.log_out_label.setText(f'Тэг {current_tag} был удалён.')
+        else:
+            for _ in formated_selection:
+                current_image_id = _[0]
+                current_tag = self.tag_choose_box.currentText()
+                print(current_image_id)
+                # print(self.curr_tag_id)
+                self.curs.execute(f'''
+                            DELETE FROM image_tags WHERE id_image = '{current_image_id}' AND id_tag = '{self.box_choosen_tag_id}'
+                            ''')
+                self.base_conection.commit()
+                self.log_out_label.setText(f'Тэг {current_tag} был удалён из всех элементов.')
+
+        self.initialize_base()
+        self.repair_autoincrement()
+        self.show_imgs_preview()
+
+    def delete_selected_all_image_tag(self):
+        self.delete_selected_one_image_tag(True)
+
+    def delete_all_one_image_tags(self, mode=False):
+        if not mode:
+            selected_im = self.current_selection[self.preview_position]
+            im_id = selected_im[0]
+            self.curs.execute(f'''
+                                        DELETE from image_tags WHERE id_image = '{im_id}'
+                                        ''').fetchall()
+            self.log_out_label.setText(f'Все тэги элемента были удалены.')
 
 
+        else:
+            for _ in self.current_selection:
+                im_id = _[0]
+                self.curs.execute(f'''
+                            DELETE from image_tags WHERE id_image = '{im_id}'
+                            ''').fetchall()
+            self.log_out_label.setText(f'Все тэги всех элементов были удалены.')
+
+        self.base_conection.commit()
+        self.initialize_base()
+        self.repair_autoincrement()
+        self.show_imgs_preview()
+
+    def delete_all_all_images_tags(self):
+        self.delete_all_one_image_tags(mode=True)
 
     def delete_tag(self):
         tag_name = self.tag_choose_box.currentText()
@@ -471,6 +528,7 @@ class Example(QMainWindow, Ui_MainWindow):
                 f'''delete from tags where id = (SELECT id from tags where name = '{tag_name}')''').fetchall()
             self.base_conection.commit()
             self.initialize_base()
+            self.table_widget_initialize()
 
     def delete_image(self):
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
@@ -485,19 +543,22 @@ class Example(QMainWindow, Ui_MainWindow):
         if valid == QMessageBox.Yes:
             for _ in formated_selection:
                 print(_)
-                os.remove(_[-1])
+                if os.path.exists(_[-1]):
+                    os.remove(_[-1])
                 self.curs.execute(f'''delete from images where id = '{_[0]}'
                 ''').fetchall()
                 self.base_conection.commit()
-            self.tableWidget.clear()
-            self.current_selection = []
-            self.tableWidget.setColumnCount(0)
-            self.tableWidget.setRowCount(0)
+            if len(formated_selection) == len(self.images):
+                self.tableWidget.clear()
+                self.current_selection = []
+                self.tableWidget.setColumnCount(0)
+                self.tableWidget.setRowCount(0)
             self.initialize_base()
+            self.repair_autoincrement()
+            self.table_widget_initialize()
             self.deselect()
             if not self.images:
                 self.log_out_label.setText('Изображения были удалены.')
-                self.repair_autoincrement()
                 sleep(1.0)
                 self.dupe_check_button.setEnabled(False)
                 self.log_out_label.setText('База изображений пуста. Добавьте изображения(е).')
@@ -508,33 +569,60 @@ class Example(QMainWindow, Ui_MainWindow):
         self.tableWidget.clearSelection()
         self.name_out_label.setText('')
         self.preview_position = 0
+        self.tag_name_label.setText('Тэги:')
         self.image_label.clear()
         self.navigation_tagging_checking_buttons_state_initialize()
 
     def navigation_tagging_checking_buttons_state_initialize(self):
-        if self.tableWidget.selectedItems():
-            for _ in self.navigation_arrows_button_group.buttons():
-                _.setEnabled(True)
-            for _ in self.tag_redact_button_group.buttons():
-                _.setEnabled(True)
-            for _ in self.selected_manipulations_button_group.buttons():
-                _.setEnabled(True)
+        if self.current_selection:
+            if len(self.current_selection) == 1:
+                for _ in self.navigation_arrows_button_group.buttons():
+                    _.setEnabled(True)
+                for _ in self.single_selection_button_group.buttons():
+                    _.setEnabled(True)
+                for _ in self.multi_selection_button_group.buttons():
+                    _.setEnabled(False)
+                for _ in self.selected_manipulations_button_group.buttons():
+                    _.setEnabled(True)
+
+            else:
+                for _ in self.navigation_arrows_button_group.buttons():
+                    _.setEnabled(True)
+                for _ in self.single_selection_button_group.buttons():
+                    _.setEnabled(True)
+                for _ in self.multi_selection_button_group.buttons():
+                    _.setEnabled(True)
+                for _ in self.selected_manipulations_button_group.buttons():
+                    _.setEnabled(True)
 
         else:
             for _ in self.navigation_arrows_button_group.buttons():
+                _.setEnabled(True)
+            for _ in self.single_selection_button_group.buttons():
                 _.setEnabled(False)
-            for _ in self.tag_redact_button_group.buttons():
+            for _ in self.multi_selection_button_group.buttons():
                 _.setEnabled(False)
             for _ in self.selected_manipulations_button_group.buttons():
-                _.setEnabled(False)
+                _.setEnabled(True)
 
     def check_box_initialize(self):
+        self.current_selected_tag_text = self.tag_choose_box.currentText()
+        if self.current_selected_tag_text:
+            self.current_selected_tag_index = self.tags.index(list(filter(lambda x: self.current_selected_tag_text in x[1], self.tags))[0])
+        else:
+            self.current_selected_tag_index = 0
+        print(self.current_selected_tag_text)
         self.tag_choose_box.clear()
         if self.tags:
             self.tag_choose_box.setEnabled(True)
             self.delete_tag_button.setEnabled(True)
-            for _ in self.tags:
+            buff_tags = self.tags
+            new_tags = [self.tags[self.current_selected_tag_index]]
+            buff_tags.pop(buff_tags.index(new_tags[0]))
+            new_tags.extend(buff_tags)
+            for _ in new_tags:
                 self.tag_choose_box.addItem(_[1])
+
         else:
             self.tag_choose_box.setEnabled(False)
             self.delete_tag_button.setEnabled(False)
@@ -542,9 +630,9 @@ class Example(QMainWindow, Ui_MainWindow):
     def table_widget_initialize(self):
         res = self.curs.execute("SELECT * from images").fetchall()
         if not res:
-            self.name_out_label.setText('Изображения не найдены')
+            self.name_out_label.setText('Изображения не найдены. Добавьте изображения.')
             self.dupe_check_button.setEnabled(False)
-            self.add_folder()
+            # self.add_folder()
         else:
             self.name_out_label.setText('')
             self.tableWidget.setRowCount(len(res))
@@ -562,7 +650,7 @@ class Example(QMainWindow, Ui_MainWindow):
             ''').fetchall()
             self.base_conection.commit()
 
-        elif not self.tags:
+        elif self.tags:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM tags) - 1 WHERE name = 'tags'
             ''').fetchall()
             self.base_conection.commit()
@@ -572,7 +660,7 @@ class Example(QMainWindow, Ui_MainWindow):
             ''').fetchall()
             self.base_conection.commit()
 
-        elif not self.tags:
+        elif self.images:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM images) - 1 WHERE name = 'images'
             ''').fetchall()
             self.base_conection.commit()
@@ -582,7 +670,7 @@ class Example(QMainWindow, Ui_MainWindow):
             ''').fetchall()
             self.base_conection.commit()
 
-        elif not self.tags:
+        elif self.image_label:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = (SELECT MAX(id) FROM image_tags) - 1 WHERE name = 'image_tags'
             ''').fetchall()
             self.base_conection.commit()
@@ -599,7 +687,7 @@ class Example(QMainWindow, Ui_MainWindow):
         if not os.path.exists(self.min_path):
             os.makedirs(self.min_path)
 
-        self.check_box_initialize()
+        # self.check_box_initialize()
         self.table_widget_initialize()
 
 

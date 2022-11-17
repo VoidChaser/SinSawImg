@@ -389,7 +389,7 @@
                  <string>Добавить тег к этому элементу</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">single_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -402,7 +402,7 @@
                  <string>Добавить тэг к всем выбранным элементам</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">multi_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -419,7 +419,7 @@
                  <string>У-ь все выб-й тэг элемента</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">single_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -432,7 +432,7 @@
                  <string>У-ь выб-й тэг у всех элементов</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">multi_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -449,7 +449,7 @@
                  <string>У-ь все тэги элемента</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">single_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -462,7 +462,7 @@
                  <string>У-ь все тэги всех элементов</string>
                 </property>
                 <attribute name="buttonGroup">
-                 <string notr="true">tag_redact_button_group</string>
+                 <string notr="true">multi_selection_button_group</string>
                 </attribute>
                </widget>
               </item>
@@ -602,6 +602,7 @@
  <buttongroups>
   <buttongroup name="navigation_arrows_button_group"/>
   <buttongroup name="selected_manipulations_button_group"/>
-  <buttongroup name="tag_redact_button_group"/>
+  <buttongroup name="single_selection_button_group"/>
+  <buttongroup name="multi_selection_button_group"/>
  </buttongroups>
 </ui>
