@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QMessageBox, QInputDi
 PHOTOFORMATS = ['img', 'bmp', 'raw', 'png', 'jpg', 'jpeg', 'IMG', 'BMP', 'RAW', 'PNG', 'JPG', 'JPEG']
 
 
-class DupeError(BaseException): # Класс исключения. Вызываем его, когда проблема с дубликатами - файлов, тегов, и т д.
+class DupeError(BaseException):  # Класс исключения. Вызываем его, когда проблема с дубликатами - файлов, тегов, и т д.
     pass
 
 
-days = { # Словарь месяцев для вывода даты
+days = {  # Словарь месяцев для вывода даты
     'Jan': '01',
     'Feb': '02',
     'Mar': '03',
@@ -34,7 +34,9 @@ days = { # Словарь месяцев для вывода даты
 }
 
 
-def get_formated_date(data): # функция для получения форматированной даты в виде строки. Используем ее, когда хотим получить дату под формат. В sql мне нужен был формат, который я уже указал здесь.
+def get_formated_date(
+        data):  # Функция для получения форматированной даты в виде строки. Используем ее, когда хотим получить дату
+    # Под формат. В sql мне нужен был формат, который я уже указал здесь.
     not_date = list(filter(lambda x: x != '', ctime(data).split(' ')))
     f = f"{not_date[2].rjust(2, '0')}.{days[not_date[1]]}.{not_date[-1]} {not_date[-2]}"
     ff = dt.datetime.strptime(f, "%d.%m.%Y %H:%M:%S")
@@ -42,10 +44,13 @@ def get_formated_date(data): # функция для получения форм
     return fff
 
 
-class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - форма программы
+class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет - форма программы
     def __init__(self):
-        super().__init__() # При инициализации класса устанавливаем атрибуты, которые будут нам нужны в будущем, и которые будут изменятся на Default значения.
-        self.setupUi(self) # Так же, еще переопределена кнопка в углу таблицы - если ее нажать, то будет Event, который выберет все элементы каталога.
+        super().__init__()  # При инициализации класса устанавливаем атрибуты, которые будут нам нужны в будущем,
+        # и которые будут изменятся на Default значения.
+        self.setupUi(
+            self)  # Так же, еще переопределена кнопка в углу таблицы - если ее нажать, то будет Event,
+        # который выберет все элементы каталога.
         self.buffered_tag_index = 0
         self.initialize_base()
         self.tableWidget.itemSelectionChanged.connect(self.show_selected_items)
@@ -60,7 +65,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         self.current_tag_name = ''
         self.current_tag_name_id = 0
 
-        self.cornerbutton = QObject.findChild(self.tableWidget, QAbstractButton) # Подключаем к кнопкам функции с их функционалом
+        self.cornerbutton = QObject.findChild(self.tableWidget,
+                                              QAbstractButton)  # Подключаем к кнопкам функции с их функционалом
         self.cornerbutton.clicked.connect(self.show_selected_items)
         self.go_left_button.clicked.connect(self.change_img_preview)
         self.go_right_button.clicked.connect(self.change_img_preview)
@@ -82,10 +88,13 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         self.show_imgs_by_tag_button.clicked.connect(self.show_by_tag)
         self.show_imgs_by_catalog_button.clicked.connect(self.show_by_folder)
         self.leave_out_button.clicked.connect(self.loadout_selections)
-        self.run() # Run - функция запуска первичных и необходимых операций после инициализации формы
-        self.showNormal() # Коррекция режима отображения
+        self.run()  # Run - функция запуска первичных и необходимых операций после инициализации формы
+        self.showNormal()  # Коррекция режима отображения
 
-    def create_miniature(self, in_path): # Функция, которая получает путь до изображения, создает его миниатюру, путём уменьшения в три раза по обоих размерам, и сохраняет вв в директорию миниатюр. Нужна при загрузке изображений.
+    def create_miniature(self,
+                         in_path):  # Функция, которая получает путь до изображения, создает его миниатюру,
+        # Путём уменьшения в три раза по обоих размерам, и сохраняет вв в директорию миниатюр. Нужна при загрузке
+        # изображений.
         im = Image.open(in_path)
         x, y = im.size
         file_name = in_path.split('/')[-1]
@@ -97,7 +106,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         im2.save(out_path)
         return self.run_dir + '/' + out_path
 
-    def show_selected_items(self): # Функция осуществляет функционал, необходимый для того, чтобы запустить показ миниатюр, подготовить всё для корректного отображения.
+    def show_selected_items(
+            self):  # Функция осуществляет функционал, необходимый для того, чтобы запустить показ миниатюр,
+        # подготовить всё для корректного отображения.
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
         print(unformated_selection)
         formated_selection = []
@@ -105,17 +116,23 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             formated_selection.append(unformated_selection[_:_ + 6])
         self.current_selection = formated_selection
         self.preview_position = 0
-        self.navigation_tagging_checking_buttons_state_initialize() # Вызываем функцию изменения State состояния группы кнопок со стрелками для навигации.
-        self.show_imgs_preview() # Функция, которая необходима, чтобы показывать миниатюру в лейбле Image и пере-инициализации разных элементов формы, связанных или влияющиях/зависящих от неё.
+        self.navigation_tagging_checking_buttons_state_initialize()  # Вызываем функцию изменения State состояния
+        # группы кнопок со стрелками для навигации.
+        self.show_imgs_preview()  # Функция, которая необходима, чтобы показывать миниатюру в лейбле Image и
+        # пере-инициализации разных элементов формы, связанных или влияющиях/зависящих от неё.
 
-    def go_add_or_not_dialogue_export_add(self): # Одна из функций - Recall диалогов. Нужна для того, чтобы предпредить пользователя об ошибке экспорта.
+    def go_add_or_not_dialogue_export_add(
+            self):  # Одна из функций - Recall диалогов. Нужна для того, чтобы предпредить пользователя об ошибке
+        # экспорта.
         validation = QMessageBox.question(
             self, '', "Возникла ошибка при экспорте. Попробуйте еще раз.",
             QMessageBox.Ok)
         if validation == QMessageBox.Ok:
             pass
 
-    def loadout_selections(self): # Функция экспорта выбранных изображений. Выполняет функционал составной функции, может кастомизировать путь для удобства - создавать дополнительную папку с именем, введенным пользователем.
+    def loadout_selections(
+            self):  # Функция экспорта выбранных изображений. Выполняет функционал составной функции,
+        # может кастомизировать путь для удобства - создавать дополнительную папку с именем, введенным пользователем.
         try:
             if not self.current_selection:
                 raise ValueError('Ничего не выбрано для экспорта. Выберите необходимые для экспорта файлы.')
@@ -128,27 +145,35 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             print(new_folder_to_out)
             extra_folder_dialogue = QMessageBox.question(
                 self, '', "Создать папку для экспортируемых файлов?",
-                QMessageBox.Yes, QMessageBox.No) # Спрашиваем пользователя - создавать ли доп. папку.
+                QMessageBox.Yes, QMessageBox.No)  # Спрашиваем пользователя - создавать ли доп. папку.
             if extra_folder_dialogue == QMessageBox.Yes:
                 folder_name, ok_pressed = QInputDialog.getText(self, "Укажите название папки для экспорта",
                                                                "Введите название папки:")
                 if ok_pressed:
                     new_folder_to_out = new_folder_to_out + '/' + folder_name
                     if not os.path.exists(new_folder_to_out):
-                        os.makedirs(new_folder_to_out) # Создаём если папки не существует. Если существует не создаём во избежание конфликта. Да и просто путанницы.
+                        os.makedirs(
+                            new_folder_to_out)  # Создаём если папки не существует. Если существует не создаём во
+                        # Избежание конфликта. Да и просто путанницы.
                     else:
-                        raise NameError('Такая папка уже существует.') # Вызываем Exeption на то, что папка по такмоу пути уже существует.
+                        raise NameError(
+                            'Такая папка уже существует.')  # Вызываем Exeption на то, что папка по такмоу пути уже
+                        # существует.
 
             else:
                 pass
             for _ in paths:
                 name = _.split('/')[-1]
-                shutil.copy(_, new_folder_to_out + '/' + name) # Копируем с помощью файловой библиотеки shutil выбранные файлы в директорию экспорта
+                shutil.copy(_,
+                            new_folder_to_out + '/' + name)  # Копируем с помощью файловой библиотеки shutil
+                # выбранные файлы в директорию экспорта
 
-            self.log_out_label.setText(f'Завершён импорт в папку {new_folder_to_out}') # Все лог-принты выводим на log_out_label. - отладочные.
+            self.log_out_label.setText(
+                f'Завершён импорт в папку {new_folder_to_out}')  # Все лог-принты выводим на log_out_label. -
+            # отладочные.
             extra_folder_dialogue = QMessageBox.question(
                 self, '', "Импорт завершён.",
-                QMessageBox.Ok) # Сообщаем пользователю, что всё прошло успешно.
+                QMessageBox.Ok)  # Сообщаем пользователю, что всё прошло успешно.
             if extra_folder_dialogue == QMessageBox.Ok:
                 pass
 
@@ -156,13 +181,16 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_export_add()
 
-        # Почти при всех Exeption я пишу в лог их содержание и вызываю соотвествующий функции диалог - для того, чтобы в случае чего снова в нее зайти, и попробовать сделать то, что пользователь хотел.
+        # Почти при всех Exeption я пишу в лог их содержание и вызываю соотвествующий функции диалог - для того,
+        # чтобы в случае чего снова в нее зайти, и попробовать сделать то, что пользователь хотел.
 
         except NameError as exeption:
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_export_add()
 
-    def show_imgs_preview(self): # Как раз таки функция показа миниатюры. Создаёт пиксмапы, выводит на Image. Пишет имя, директорию, конкретный номер в селекции в отдельное поле для имени файла и служебной информации.
+    def show_imgs_preview(
+            self):  # Как раз таки функция показа миниатюры. Создаёт пиксмапы, выводит на Image. Пишет имя,
+        # директорию, конкретный номер в селекции в отдельное поле для имени файла и служебной информации.
         self.preview_size = self.image_label.size()
         self.preview_sizes = (self.preview_size.width(), self.preview_size.height())
         if self.current_selection:
@@ -183,7 +211,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.image_label.setPixmap(self.pixmap)
 
-    def change_img_preview(self): # Функция для кнопок навигации на форме - чтобы перемещаться туда суда по селекции.
+    def change_img_preview(self):  # Функция для кнопок навигации на форме - чтобы перемещаться туда суда по селекции.
         if self.sender().text() == '<-':
             self.preview_position = self.preview_position - 1
         elif self.sender().text() == '->':
@@ -194,7 +222,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.preview_position = len(self.current_selection) - 1
         self.show_imgs_preview()
 
-    def dupe_check(self): # служебная функция проверки на дубликаты - я сделал ее, чтобы проверять базу данных на то, что я ее не запорол, пока копировал или вставлял в директорию.
+    def dupe_check(
+            self):  # служебная функция проверки на дубликаты - я сделал ее, чтобы проверять базу данных на то,
+        # что я ее не запорол, пока копировал или вставлял в директорию.
         self.initialize_base()
         tags_dupped = []
         already_tag_names = []
@@ -219,7 +249,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         if tags_dupped:
             valid = QMessageBox.question(
                 self, '', "Среди тэгов обнаружены дубли. Убрать дубли из тэгов?",
-                QMessageBox.Yes, QMessageBox.No) # Все дубли будут удаляться, если такие есть, и выводить диаолог на то, чтобы спросить пользователя.
+                QMessageBox.Yes,
+                QMessageBox.No)  # Все дубли будут удаляться, если такие есть, и выводить диаолог на то,
+            # чтобы спросить пользователя.
             if valid == QMessageBox.Yes:
                 for _ in tags_dupped:
                     self.curs.execute(
@@ -250,7 +282,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         self.initialize_base()
         self.table_widget_initialize_folder()
 
-    def keyPressEvent(self, event): # Переопределяем Event-функцию взаимодействия с клавиатурой - для удобства. Навигация может производится с помощью стрелок и квадратных скобок.
+    def keyPressEvent(self,
+                      event):  # Переопределяем Event-функцию взаимодействия с клавиатурой - для удобства. Навигация
+        # может производиться с помощью стрелок и квадратных скобок.
         if all(list(map(lambda x: x.isEnabled(), self.navigation_arrows_button_group.buttons()))):
             kb_key = event.key()
             corners = [91, 93]
@@ -268,12 +302,14 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
                     self.table_widget_initialize_tags()
                 self.show_imgs_preview()
 
-    def resizeEvent(self, event): # Переопределяем Event-функцию изменения размера формы. Мне она нужна, чтобы изображение масштабировалось.
+    def resizeEvent(self,
+                    event):  # Переопределяем Event-функцию изменения размера формы. Мне она нужна, чтобы изображение
+        # масштабировалось.
         if self.mode == 'tags':
             self.table_widget_initialize_tags()
         self.show_imgs_preview()
 
-    def add_images_to_base(self, li): # Функция для добавления изображения(ий) в базу данных.
+    def add_images_to_base(self, li):  # Функция для добавления изображения(ий) в базу данных.
         for ___ in li:
             path, tip, c_date, m_date, mini_path = ___
 
@@ -304,7 +340,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         if valid == QMessageBox.Ok:
             pass
 
-    def add_folder(self): # функция добавления папки в каталог, и обработки исключений, когда в папке ничего нет, или из неё уже все залито.
+    def add_folder(
+            self):  # функция добавления папки в каталог, и обработки исключений, когда в папке ничего нет,
+        # или из неё уже все залито.
         self.deselect()
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFiles)
@@ -347,7 +385,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_folder_add()
 
-    def add_tag(self): # Функция создания нового тэга. Создаёт новый тег, вызвает пере-инициализацию окна с выбором тэга и его State активации/деактивации.
+    def add_tag(
+            self):  # Функция создания нового тэга. Создаёт новый тег, вызвает пере-инициализацию окна с выбором тэга
+        # и его State активации/деактивации.
         try:
             tag_name = self.tag_name_edit.text()
             if tag_name == '':
@@ -370,15 +410,15 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_tag_add()
 
-        self.initialize_base() # Вызываем функцию инициализации/переиницализации базы данных
+        self.initialize_base()  # Вызываем функцию инициализации/переиницализации базы данных
 
-    def show_by_folder(self): # функция вызова запуска просмотра таблицы через каталог с изображениями.
+    def show_by_folder(self):  # функция вызова запуска просмотра таблицы через каталог с изображениями.
         self.mode = 'folders'
         self.current_tag_name = ''
         self.current_tag_name_id = 0
         self.table_widget_initialize_folder()
 
-    def show_by_tag(self): # функция вызова запуска просмотра таблицы через тэги изображений.
+    def show_by_tag(self):  # функция вызова запуска просмотра таблицы через тэги изображений.
         self.mode = 'tags'
         tag_name = self.tag_choose_box.currentText()
         tag_index_in_tags = self.curs.execute(f'''
@@ -388,7 +428,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         self.current_tag_name_id = tag_index_in_tags
         self.table_widget_initialize_tags()
 
-    def add_image(self): # Функция добавления файла в глобальный каталог. И обработки стандартных исключений для фото-файлов.
+    def add_image(
+            self):  # Функция добавления файла в глобальный каталог. И обработки стандартных исключений для фото-файлов.
         self.deselect()
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFiles)
@@ -450,7 +491,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.log_out_label.setText(str(exeption))
             self.go_add_or_not_dialogue_image_add()
 
-    def initialize_base(self): # Функция инициализации/реинициализации базы данных. Производит переинициализацию переменных - зависящих от базы данных, обновляет саму базу данных.
+    def initialize_base(
+            self):  # Функция инициализации/реинициализации базы данных. Производит переинициализацию переменных -
+        # зависящих от базы данных, обновляет саму базу данных.
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
 
@@ -492,9 +535,10 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
 ''').fetchall()
                 self.base_conection.commit()
 
-        self.check_box_initialize() # Функция инициализации/переинициализации списка тэгов.
+        self.check_box_initialize()  # Функция инициализации/переинициализации списка тэгов.
 
-    def add_single_image_tag(self, mode=False): # Функция добавления одного выбранного тэга к одному выбранному изобоажению.
+    def add_single_image_tag(self,
+                             mode=False):  # Функция добавления одного выбранного тэга к одному выбранному изобоажению.
         try:
             unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
             formated_selection = []
@@ -521,7 +565,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
                 else:
                     raise DupeError('Тэг уже был добавлен.')
 
-            else: # Альтернативный метод исполнения - добавление одного выбранного тэга ко всем выбранным изображениям.
+            else:  # Альтернативный метод исполнения - добавление одного выбранного тэга ко всем выбранным изображениям.
                 current_tag = self.tag_choose_box.currentText()
                 tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
                         ''').fetchall()[0][0]
@@ -558,9 +602,11 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.go_add_or_not_dialogue_tag_add()
 
     def add_all_image_tag(self):
-        self.add_single_image_tag(mode=True) # Вызов через именованный агруемент в исходной функции - как параметр.
+        self.add_single_image_tag(mode=True)  # Вызов через именованный агруемент в исходной функции - как параметр.
 
-    def delete_selected_one_image_tag(self, mode=False): # Функция удаления одного выбранного тэга у одного выбранного изображения
+    def delete_selected_one_image_tag(self,
+                                      mode=False):  # Функция удаления одного выбранного тэга у одного выбранного
+        # изображения
         self.box_choosen_tag = self.tag_choose_box.currentText()
         self.box_choosen_tag_id = self.curs.execute(f'''
                             SELECT id from tags WHERE id = (SELECT id FROM tags WHERE name = '{self.box_choosen_tag}')            
@@ -579,7 +625,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             ''')
             self.base_conection.commit()
             self.log_out_label.setText(f'Тэг {current_tag} был удалён.')
-        else: # Альтернативный метод исполнения - удаление одного выбранного тэга у всех выбранныъ изображений.
+        else:  # Альтернативный метод исполнения - удаление одного выбранного тэга у всех выбранныъ изображений.
             for _ in formated_selection:
                 current_image_id = _[0]
                 current_tag = self.tag_choose_box.currentText()
@@ -593,15 +639,17 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
                 self.log_out_label.setText(f'Тэг {current_tag} был удалён из всех элементов.')
 
         self.initialize_base()
-        self.repair_autoincrement() # Функция "чинит" AutoIncrement в базе данных. После удаления элементов - он ломается, - пишет уже не 1, а 2, например. И его так надо чинить.
+        self.repair_autoincrement()  # Функция "чинит" AutoIncrement в базе данных. После удаления элементов - он
+        # Ломается, — пишет уже не 1, а 2, например. И его так надо чинить.
         if self.mode == 'tags':
-            self.table_widget_initialize_tags() # Функция переинициализирует тэги в превью.
+            self.table_widget_initialize_tags()  # Функция переинициализирует тэги в превью.
         self.show_imgs_preview()
 
-    def delete_selected_all_image_tag(self): # Альтернативный запуск функции удаления всех тэгов у всех выбранных изображений
+    def delete_selected_all_image_tag(
+            self):  # Альтернативный запуск функции удаления всех тэгов у всех выбранных изображений
         self.delete_selected_one_image_tag(True)
 
-    def delete_all_one_image_tags(self, mode=False): # Функция удаляет все тэги элемента(ов)
+    def delete_all_one_image_tags(self, mode=False):  # Функция удаляет все тэги элемента(ов)
         if not mode:
             selected_im = self.current_selection[self.preview_position]
             im_id = selected_im[0]
@@ -618,17 +666,18 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
                             ''').fetchall()
             self.log_out_label.setText(f'Все тэги всех элементов были удалены.')
 
-        self.base_conection.commit() # Закрепляем в базе и переинициализируем БД.
+        self.base_conection.commit()  # Закрепляем в базе и переинициализируем БД.
         self.initialize_base()
         self.repair_autoincrement()
         if self.mode == 'tags':
             self.table_widget_initialize_tags()
         self.show_imgs_preview()
 
-    def delete_all_all_images_tags(self): # Альтернативный запуск функции удаления всех тэгов всех выбранных файлов.
+    def delete_all_all_images_tags(self):  # Альтернативный запуск функции удаления всех тэгов всех выбранных файлов.
         self.delete_all_one_image_tags(mode=True)
 
-    def delete_tag(self): # Функция удаления выбранного тэга. Также удаляет все упоминания в поле Image_tags, включающие его.
+    def delete_tag(
+            self):  # Функция удаления выбранного тэга. Также удаляет все упоминания в поле Image_tags, включающие его.
         self.initialize_base()
         self.deselect()
         tag_name = self.tag_choose_box.currentText()
@@ -658,7 +707,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             else:
                 self.table_widget_initialize_folder()
 
-    def delete_image(self): # Функция удаления выбранного изображения(ий)
+    def delete_image(self):  # Функция удаления выбранного изображения(ий)
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
         print(unformated_selection)
         formated_selection = []
@@ -693,7 +742,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             else:
                 self.log_out_label.setText('Изображения были удалены.')
 
-    def deselect(self): # Функция для того, чтобы убрать выделение.
+    def deselect(self):  # Функция для того, чтобы убрать выделение.
         self.tableWidget.clearSelection()
         self.name_out_label.setText('')
         self.preview_position = 0
@@ -701,7 +750,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
         self.image_label.clear()
         self.navigation_tagging_checking_buttons_state_initialize()
 
-    def navigation_tagging_checking_buttons_state_initialize(self): # Функция редактирования State состояний ButtonGroup'ов
+    def navigation_tagging_checking_buttons_state_initialize(
+            self):  # Функция редактирования State состояний ButtonGroup'ов
         if self.current_selection:
             if len(self.current_selection) == 1:
                 for _ in self.navigation_arrows_button_group.buttons():
@@ -733,7 +783,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             for _ in self.selected_manipulations_button_group.buttons():
                 _.setEnabled(True)
 
-    def check_box_initialize(self): # Функция, которая переинциализирует список тэгов. Выставляет State'ы.
+    def check_box_initialize(self):  # Функция, которая переинциализирует список тэгов. Выставляет State'ы.
         self.current_selected_tag_text = self.tag_choose_box.currentText()
         if self.current_selected_tag_text and not self.tag_deleted:
             self.current_selected_tag_index = self.tags.index(
@@ -760,7 +810,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.tag_choose_box.setEnabled(False)
             self.delete_tag_button.setEnabled(False)
 
-    def table_widget_initialize_folder(self): # Функция выполняет построение таблицы для работы с изображениями, выбранными по глобальному каталогу.
+    def table_widget_initialize_folder(
+            self):  # Функция выполняет построение таблицы для работы с изображениями, выбранными по глобальному
+        # каталогу.
         self.mode = 'folders'
         res = self.curs.execute("SELECT * from images").fetchall()
         if not res:
@@ -777,7 +829,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.tableWidget.setHorizontalHeaderLabels(self.titles)
             self.dupe_check_button.setEnabled(True)
 
-    def table_widget_initialize_tags(self): # Функция выполняет построение таблицы для работы с изображениями, выбранными по конкретному тэгу.
+    def table_widget_initialize_tags(
+            self):  # Функция выполняет построение таблицы для работы с изображениями, выбранными по конкретному тэгу.
         res = self.curs.execute(f'''
         SELECT * FROM images WHERE id in 
         (SELECT id_image FROM image_tags WHERE id_tag = '{self.current_tag_name_id}')''').fetchall()
@@ -799,7 +852,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             self.tableWidget.setHorizontalHeaderLabels(self.titles)
             self.dupe_check_button.setEnabled(True)
 
-    def repair_autoincrement(self): # Функция, которая чинит AutoIncrement в полях базы данных.
+    def repair_autoincrement(self):  # Функция, которая чинит AutoIncrement в полях базы данных.
         if not self.tags:
             self.curs.execute('''UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = 'tags'
             ''').fetchall()
@@ -831,7 +884,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow): # Основной виджет - 
             ''').fetchall()
             self.base_conection.commit()
 
-    def run(self): # Функция, которая готовит всё к нормальной работе.
+    def run(self):  # Функция, которая готовит всё к нормальной работе.
         self.repair_autoincrement()
         print(self.images)
         self.run_time = get_formated_date(time()).split(' ')[::]
