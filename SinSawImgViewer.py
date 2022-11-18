@@ -1,7 +1,7 @@
 import sys
 import os
 from time import ctime, time, sleep
-from vibor_new_dialog_based_other import Ui_MainWindow
+from SinSawViewUI import Ui_MainWindow
 import datetime as dt
 from PyQt5.QtCore import Qt, QObject
 from PyQt5.QtGui import QPixmap

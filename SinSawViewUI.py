@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'vibor_new_dialog_based_other.ui'
+# Form implementation generated from reading ui file 'SinSawViewUI.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
