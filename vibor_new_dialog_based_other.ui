@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1313</width>
-    <height>842</height>
+    <height>845</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -549,6 +549,13 @@
                </widget>
               </item>
               <item>
+               <widget class="QPushButton" name="show_imgs_by_catalog_button">
+                <property name="text">
+                 <string>Отобразить изображения по каталогу</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QPushButton" name="leave_out_button">
                 <property name="text">
                  <string>Выгрузить выбранное изображение(я)</string>
@@ -621,9 +628,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="selected_manipulations_button_group"/>
   <buttongroup name="multi_selection_button_group"/>
-  <buttongroup name="navigation_arrows_button_group"/>
+  <buttongroup name="selected_manipulations_button_group"/>
   <buttongroup name="single_selection_button_group"/>
+  <buttongroup name="navigation_arrows_button_group"/>
  </buttongroups>
 </ui>

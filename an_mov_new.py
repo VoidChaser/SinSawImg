@@ -7,8 +7,9 @@ from PyQt5.QtCore import Qt, QObject
 from PyQt5.QtGui import QPixmap
 from PIL import Image
 import sqlite3
+import shutil
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAbstractButton
-from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QMessageBox, QInputDialog
 
 PHOTOFORMATS = ['img', 'bmp', 'raw', 'png', 'jpg', 'jpeg', 'IMG', 'BMP', 'RAW', 'PNG', 'JPG', 'JPEG']
 
@@ -55,6 +56,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         self.imported_dirs = []
         self.preview_position = 0
         self.formated_infos = []
+        self.mode = 'folders'
+        self.current_tag_name = ''
+        self.current_tag_name_id = 0
 
 
         self.cornerbutton = QObject.findChild(self.tableWidget, QAbstractButton)
@@ -76,6 +80,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         self.del_all_tag_button.clicked.connect(self.delete_selected_all_image_tag)
         self.del_all_tags_of_single_element_button.clicked.connect(self.delete_all_one_image_tags)
         self.del_all_tags_of_all_elements_button.clicked.connect(self.delete_all_all_images_tags)
+        self.show_imgs_by_tag_button.clicked.connect(self.show_by_tag)
+        self.show_imgs_by_catalog_button.clicked.connect(self.show_by_folder)
+        self.leave_out_button.clicked.connect(self.loadout_selections)
         self.run()
         self.showNormal()
 
@@ -87,7 +94,9 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         # print(out_path)
 
         im2 = im.resize((x // 3, y // 3))
+        # self.log_out_label.setText(f"{out_path} saved")
         print(f"{out_path} saved")
+
         im2.save(out_path)
         return self.run_dir + '/' + out_path
 
@@ -101,6 +110,67 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         self.preview_position = 0
         self.navigation_tagging_checking_buttons_state_initialize()
         self.show_imgs_preview()
+
+    def go_add_or_not_dialogue_export_add(self):
+        valid = QMessageBox.question(
+            self, '', "Возникла ошибка при экспорте. Попробуйте еще раз.",
+            QMessageBox.Ok)
+        if valid == QMessageBox.Ok:
+            pass
+    def loadout_selections(self):
+        try:
+            if not self.current_selection:
+                raise ValueError('Ничего не выбрано для экспорта. Выберите необходимые для экспорта файлы.')
+            paths = list(map(lambda x: x[1], self.current_selection))
+            print(paths)
+            dialog = QFileDialog()
+            dialog.setFileMode(QFileDialog.Directory)
+            # try:
+            new_folder_to_out = dialog.getExistingDirectory(self, 'Выбрать путь для экспорта.')
+            print(new_folder_to_out)
+            valid = QMessageBox.question(
+                self, '', "Создать папку для экспортируемых файлов?",
+                QMessageBox.Yes, QMessageBox.No)
+            if valid == QMessageBox.Yes:
+                folder_name, ok_pressed = QInputDialog.getText(self, "Укажите название папки для экспорта",
+                                                        "Введите название папки:")
+                if ok_pressed:
+                    new_folder_to_out = new_folder_to_out + '/' + folder_name
+                    if not os.path.exists(new_folder_to_out):
+                        os.makedirs(new_folder_to_out)
+                    else:
+                        raise NameError('Такая папка уже существует.')
+
+            else:
+                print('no ok')
+            for _ in paths:
+                name = _.split('/')[-1]
+                shutil.copy(_, new_folder_to_out + '/' + name)
+
+            self.log_out_label.setText(f'Завершён импорт в папку {new_folder_to_out}')
+            valid = QMessageBox.question(
+                self, '', "Импорт завершён.",
+                QMessageBox.Ok)
+            if valid == QMessageBox.Ok:
+                pass
+
+
+        except ValueError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.go_add_or_not_dialogue_export_add()
+
+        except NameError as exeption:
+            self.log_out_label.setText(str(exeption))
+            self.go_add_or_not_dialogue_export_add()
+
+
+
+
+            # photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(
+            #     map(lambda y: [self.dir_name + '/' + y, y.split('.')[-1]],
+            #         (filter(lambda x: x[0] != '.' and '.' in x, os.listdir(path=self.dir_name)))))))
+            # print(photo_files)
+
 
     def show_imgs_preview(self):
         self.preview_size = self.image_label.size()
@@ -123,6 +193,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             self.pixmap = QPixmap(self.current_selection[self.preview_position][-1])
             self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
             self.image_label.setPixmap(self.pixmap)
+        # if self.mode == 'tags':
+        #     self.table_widget_initialize_tags()
 
     def change_img_preview(self):
         if self.sender().text() == '<-':
@@ -190,7 +262,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             self.log_out_label.setText('Дублей нет в изображениях.')
         self.deselect()
         self.initialize_base()
-        self.table_widget_initialize()
+        self.table_widget_initialize_folder()
 
     def keyPressEvent(self, event):
         if all(list(map(lambda x: x.isEnabled(), self.navigation_arrows_button_group.buttons()))):
@@ -206,9 +278,13 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
                     self.preview_position = 0
                 elif kb_key == corners[1]:
                     self.preview_position = len(self.current_selection) - 1
+                if self.mode == 'tags':
+                    self.table_widget_initialize_tags()
                 self.show_imgs_preview()
 
     def resizeEvent(self, event):
+        if self.mode == 'tags':
+            self.table_widget_initialize_tags()
         self.show_imgs_preview()
 
     def add_images_to_base(self, li):
@@ -271,7 +347,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
 
             self.formated_infos = photo_files
             self.add_images_to_base(self.formated_infos)
-            self.table_widget_initialize()
+            self.table_widget_initialize_folder()
 
         except FileNotFoundError:
             self.log_out_label.setText('Некорректно указана директория папки с изображениями')
@@ -311,6 +387,21 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
 
         self.initialize_base()
 
+    def show_by_folder(self):
+        self.mode = 'folders'
+        self.current_tag_name = ''
+        self.current_tag_name_id = 0
+        self.table_widget_initialize_folder()
+
+    def show_by_tag(self):
+        self.mode = 'tags'
+        tag_name = self.tag_choose_box.currentText()
+        tag_index_in_tags = self.curs.execute(f'''
+                SELECT id from tags WHERE name = '{tag_name}'
+                ''').fetchall()[0][0]
+        self.current_tag_name = tag_name
+        self.current_tag_name_id = tag_index_in_tags
+        self.table_widget_initialize_tags()
 
     def add_image(self):
         self.deselect()
@@ -368,7 +459,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             self.formated_infos = photo_files
             self.add_images_to_base(self.formated_infos)
             self.log_out_label.setText("Изображения добавлены.")
-            self.table_widget_initialize()
+            self.table_widget_initialize_folder()
 
         except FileNotFoundError:
             self.log_out_label.setText('Некорректно указан путь к изображению(ям)')
@@ -541,6 +632,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
 
         self.initialize_base()
         self.repair_autoincrement()
+        if self.mode == 'tags':
+            self.table_widget_initialize_tags()
         self.show_imgs_preview()
 
     def delete_selected_all_image_tag(self):
@@ -567,6 +660,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         self.base_conection.commit()
         self.initialize_base()
         self.repair_autoincrement()
+        if self.mode == 'tags':
+            self.table_widget_initialize_tags()
         self.show_imgs_preview()
 
     def delete_all_all_images_tags(self):
@@ -595,7 +690,11 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             self.base_conection.commit()
 
             self.initialize_base()
-            self.table_widget_initialize()
+            self.repair_autoincrement()
+            if self.mode == 'tags':
+                self.table_widget_initialize_tags()
+            else:
+                self.table_widget_initialize_folder()
 
     def delete_image(self):
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
@@ -622,7 +721,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
                 self.tableWidget.setRowCount(0)
             self.initialize_base()
             self.repair_autoincrement()
-            self.table_widget_initialize()
+            self.table_widget_initialize_folder()
             self.deselect()
             if not self.images:
                 self.log_out_label.setText('Изображения были удалены.')
@@ -639,6 +738,8 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
         self.tag_name_label.setText('Тэги:')
         self.image_label.clear()
         self.navigation_tagging_checking_buttons_state_initialize()
+        # if self.mode == 'tags':
+        #     self.table_widget_initialize_tags()
 
     def navigation_tagging_checking_buttons_state_initialize(self):
         if self.current_selection:
@@ -698,11 +799,34 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             self.tag_choose_box.setEnabled(False)
             self.delete_tag_button.setEnabled(False)
 
-    def table_widget_initialize(self):
+    def table_widget_initialize_folder(self):
+        self.mode = 'folders'
         res = self.curs.execute("SELECT * from images").fetchall()
         if not res:
             self.name_out_label.setText('Изображения не найдены. Добавьте изображения.')
             self.dupe_check_button.setEnabled(False)
+            # self.add_folder()
+        else:
+            self.name_out_label.setText('')
+            self.tableWidget.setRowCount(len(res))
+            self.tableWidget.setColumnCount(len(res[0]))
+            self.titles = [title[0] for title in self.curs.description]
+            for i, elem in enumerate(res):
+                for j, val in enumerate(elem):
+                    self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
+            self.tableWidget.setHorizontalHeaderLabels(self.titles)
+            self.dupe_check_button.setEnabled(True)
+
+    def table_widget_initialize_tags(self):
+        res = self.curs.execute(f'''
+        SELECT * FROM images WHERE id in (SELECT id_image FROM image_tags WHERE id_tag = '{self.current_tag_name_id}')''').fetchall()
+        if not res:
+            self.name_out_label.setText('Изображения по тэгу не найдены.')
+            self.tableWidget.clear()
+            self.tableWidget.setRowCount(0)
+            self.tableWidget.setColumnCount(0)
+            self.dupe_check_button.setEnabled(False)
+            self.deselect()
             # self.add_folder()
         else:
             self.name_out_label.setText('')
@@ -759,7 +883,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):
             os.makedirs(self.min_path)
 
         # self.check_box_initialize()
-        self.table_widget_initialize()
+        self.table_widget_initialize_folder()
 
 
 if __name__ == '__main__':
