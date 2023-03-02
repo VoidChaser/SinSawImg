@@ -680,10 +680,12 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             self):  # Функция удаления выбранного тэга. Также удаляет все упоминания в поле Image_tags, включающие его.
         self.initialize_base()
         self.deselect()
+
         tag_name = self.tag_choose_box.currentText()
         valid = QMessageBox.question(
             self, '', f"Действительно удалить тэг {tag_name}?",
             QMessageBox.Yes, QMessageBox.No)
+
         if valid == QMessageBox.Yes:
             tag_index_in_tags = list(map(lambda x: x[1], self.tags)).index(tag_name)
             self.curs.execute(f'''
@@ -805,6 +807,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                 new_tags.extend(buff_tags)
                 for _ in new_tags:
                     self.tag_choose_box.addItem(_[1])
+                self.tags = new_tags
             else:
                 self.tag_choose_box.addItem(self.tags[0][1])
 
@@ -903,4 +906,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = ViewWindow()
     ex.show()
+    ex.check_box_initialize()
     sys.exit(app.exec_())
