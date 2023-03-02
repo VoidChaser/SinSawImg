@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import os
 from time import ctime, time
@@ -8,8 +9,11 @@ from PyQt5.QtGui import QPixmap
 from PIL import Image
 
 
+# import scipy
+
+
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAbstractButton
-from PyQt5.QtWidgets import QFileDialog, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
 
 PHOTOFORMATS = ['img', 'bmp', 'raw', 'png', 'jpg', 'jpeg', 'IMG', 'BMP', 'RAW', 'PNG', 'JPG', 'JPEG']
 print(PHOTOFORMATS)
@@ -28,15 +32,43 @@ days = {
     'Nov': '11',
     'Dec': '12'
 }
+# async def saved(item, outpath):
+#     item.save(outpath)
+#     return ''
 
 
-
-def less_variety(in_path, out_path):
+async def componented_less_variety(in_path, out_path):
     im = Image.open(in_path)
     x, y = im.size
 
     im2 = im.resize((x // 3, y // 3))
+    print(f"{out_path} saved")
     im2.save(out_path)
+    await asyncio.sleep(1/10000)
+
+# async def componented_less_variety(in_path, out_path):
+#     im = Image.open(in_path)
+#     x, y = im.size
+#     im2 = im.resize((x // 3, y // 3))
+#     print(f"{out_path} saved")
+#     await im2.save(out_path)
+
+# async def componented_less_variety(in_path, out_path):
+#     im = Image.open(in_path)
+#     x, y = im.size
+#     im2 = im.resize((x // 3, y // 3))
+#     print(f"{out_path} saved")
+#     asyncio.create_task(im2.save(out_path))
+
+
+
+# def less_variety(in_path, out_path):
+#     im = Image.open(in_path)
+#     x, y = im.size
+#
+#     im2 = im.resize((x // 3, y // 3))
+#     im2.save(out_path)
+#     return f"{out_path} saved"
 
 
 def get_formated(data):
@@ -112,13 +144,19 @@ class Example(QMainWindow, Ui_MainWindow):
             self.preview_position = len(self.current_selection) - 1
         self.show_imgs_preview()
 
-    def create_miniatures_folder_with(self):
+    async def create_miniatures_folder_with(self):
+        tasks = []
+
         self.min_path = self.dir_name + '/miniatures'
         if not os.path.exists(self.min_path):
             os.makedirs(self.min_path)
+
         for __ in self.formated_infos:
             curr_name = __[0]
-            less_variety(__[-1], self.min_path + '/' + curr_name)
+            taks = componented_less_variety(__[-1], self.min_path + '/' + curr_name)
+            tasks.append(taks)
+
+        await asyncio.gather(*tasks)
 
     def keyPressEvent(self, event):
         # print(event.key())
@@ -149,15 +187,12 @@ class Example(QMainWindow, Ui_MainWindow):
         # print(files)
         for __ in range(1, len(files) + 1):
             _ = files[__ - 1]
-            type = _.split('.')[-1]
+            typ = _.split('.')[-1]
             file_path = self.dir_name + '/' + _
-            if type in PHOTOFORMATS:
+            if typ in PHOTOFORMATS:
                 file_stat = os.stat(file_path)
                 self.formated_infos.append(
-                    (_, '.' + type, get_formated(file_stat.st_mtime), get_formated(file_stat.st_ctime), file_path))
-        start_time = time()
-        self.create_miniatures_folder_with()
-        print("--- %s seconds ---" % (time() - start_time))
+                    (_, '.' + typ, get_formated(file_stat.st_mtime), get_formated(file_stat.st_ctime), file_path))
         print(self.formated_infos)
 
     def run(self):
@@ -167,6 +202,9 @@ class Example(QMainWindow, Ui_MainWindow):
             for j, val in enumerate(self.formated_infos[i]):
                 self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
                 # self.tableWidget.adjustSize()
+        start_time = time()
+        asyncio.run(self.create_miniatures_folder_with())
+        print("--- %s seconds ---" % (time() - start_time))
 
 
 if __name__ == '__main__':
@@ -176,4 +214,4 @@ if __name__ == '__main__':
     sys.exit(app.exec_())
 
 
-# TO DO: написать комментарии. Придумать второе окно, и главное окно. Придумать штуку с тегами.
+# TO DO: написать комментарии. Придумать второе окно, и главное окно. Придумать штуку с тегами. Асинхронность доделать

@@ -685,20 +685,22 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             self, '', f"Действительно удалить тэг {tag_name}?",
             QMessageBox.Yes, QMessageBox.No)
         if valid == QMessageBox.Yes:
-            self.log_out_label.setText(f"Тэг {tag_name} удалён")
+            tag_index_in_tags = list(map(lambda x: x[1], self.tags)).index(tag_name)
+            self.curs.execute(f'''
+            DELETE FROM image_tags WHERE id_tag = '{tag_index_in_tags}'
+            ''').fetchall()
+            self.base_conection.commit()
+
             self.curs.execute(
                 f'''delete from tags where id = (SELECT id from tags where name = '{tag_name}')''').fetchall()
             self.base_conection.commit()
-            tag_index_in_tags = list(map(lambda x: x[1], self.tags)).index(tag_name)
             new_tags = self.tags
             new_tags.pop(tag_index_in_tags)
             self.tags = new_tags
             self.tag_deleted = True
 
-            self.curs.execute(f'''
-            DELETE FROM image_tags WHERE id_tag = '{tag_index_in_tags}'
-            ''').fetchall()
-            self.base_conection.commit()
+
+            self.log_out_label.setText(f"Тэг {tag_name} удалён")
 
             self.initialize_base()
             self.repair_autoincrement()
