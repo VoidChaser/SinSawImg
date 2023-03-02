@@ -101,7 +101,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
         out_path = self.min_path + '/' + file_name
 
         im2 = im.resize((x // 3, y // 3))
-        print(f"{out_path} saved")
+        # print(f"{out_path} saved")
 
         im2.save(out_path)
         return self.run_dir + '/' + out_path
@@ -110,7 +110,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             self):  # Функция осуществляет функционал, необходимый для того, чтобы запустить показ миниатюр,
         # подготовить всё для корректного отображения.
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
-        print(unformated_selection)
+        # print(unformated_selection)
         formated_selection = []
         for _ in range(0, len(unformated_selection), 6):
             formated_selection.append(unformated_selection[_:_ + 6])
@@ -137,12 +137,12 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             if not self.current_selection:
                 raise ValueError('Ничего не выбрано для экспорта. Выберите необходимые для экспорта файлы.')
             paths = list(map(lambda x: x[1], self.current_selection))
-            print(paths)
+            # print(paths)
             export_path_dialog = QFileDialog()
             export_path_dialog.setFileMode(QFileDialog.Directory)
             # try:
             new_folder_to_out = export_path_dialog.getExistingDirectory(self, 'Выбрать путь для экспорта.')
-            print(new_folder_to_out)
+            # print(new_folder_to_out)
             extra_folder_dialogue = QMessageBox.question(
                 self, '', "Создать папку для экспортируемых файлов?",
                 QMessageBox.Yes, QMessageBox.No)  # Спрашиваем пользователя - создавать ли доп. папку.
@@ -205,7 +205,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                  id_image = '{self.cur_im_id}')
             ORDER BY id''').fetchall()
             current_tags = list(map(lambda x: x[0], self.current_tags))
-            print(current_tags)
+            # print(current_tags)
             self.tag_name_label.setText(" Тэги: " + ', '.join(current_tags))
             self.pixmap = QPixmap(self.current_selection[self.preview_position][-1])
             self.pixmap = self.pixmap.scaled(*self.preview_sizes, Qt.KeepAspectRatio, Qt.FastTransformation)
@@ -351,14 +351,14 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(
                 map(lambda y: [self.dir_name + '/' + y, y.split('.')[-1]],
                     (filter(lambda x: x[0] != '.' and '.' in x, os.listdir(path=self.dir_name)))))))
-            print(photo_files)
+            # print(photo_files)
 
             if not photo_files:
                 raise ImportError('В папке нет изображений. Выберите папку с изображениями.')
             if self.images:
                 imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
                                          list(map(lambda x: x[0], photo_files))))
-                print(imgs_duped)
+                # print(imgs_duped)
                 if imgs_duped == photo_files:
                     raise DupeError('Все изображения в папке уже добавлены.')
                 else:
@@ -439,12 +439,12 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                 photo_files = list(map(lambda u: u, list(filter(lambda z: z[1] in PHOTOFORMATS, list(
                     map(lambda y: [y, y.split('.')[-1]],
                         (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))))
-                print(photo_files)
+                # print(photo_files)
             else:
                 photo_files = list(filter(lambda z: z[1] in PHOTOFORMATS, list(
                     map(lambda y: [y, y.split('.')[-1]],
                         (filter(lambda x: x[0] != '.' and '.' in x, image_path))))))
-                print(photo_files)
+                # print(photo_files)
             if not photo_files:
                 raise ImportError('Выбранный файл не является изображением(ями).')
 
@@ -452,7 +452,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                 if len(photo_files) == 1:
                     imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
                                              list(map(lambda x: x, photo_files[0]))))
-                    print(imgs_duped)
+                    # print(imgs_duped)
                     if imgs_duped[0] == photo_files[0][0]:
                         raise DupeError('Выбранный файл уже добавлен(ы).')
 
@@ -461,7 +461,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                 else:
                     imgs_duped = list(filter(lambda x: x in list(map(lambda z: z[1], self.images)),
                                              list(map(lambda x: x[0], photo_files))))
-                    print(imgs_duped)
+                    # print(imgs_duped)
                     if imgs_duped[0] == photo_files[0][0]:
                         raise DupeError('Выбранный файл уже добавлен(ы).')
 
@@ -547,15 +547,15 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             if not mode:
                 current_image = formated_selection[self.preview_position]
                 current_tag = self.tag_choose_box.currentText()
-                print(current_image)
+                # print(current_image)
                 im_id = current_image[0]
-                print(current_tag)
-                print(im_id)
+                # print(current_tag)
+                # print(im_id)
                 tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
                 ''').fetchall()[0][0]
-                print(tag_id)
+                # print(tag_id)
                 imgs_tups = list(map(lambda x: (x[1], x[2]), self.image_tags))
-                print(imgs_tups)
+                # print(imgs_tups)
                 if (int(im_id), tag_id) not in imgs_tups:
                     self.curs.execute(f'''INSERT INTO image_tags (id_image, id_tag)
                     VALUES (?, ?)
@@ -569,20 +569,20 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
                 current_tag = self.tag_choose_box.currentText()
                 tag_id = self.curs.execute(f'''SELECT id FROM tags WHERE id = (SELECT id WHERE name = '{current_tag}')
                         ''').fetchall()[0][0]
-                print(tag_id)
+                # print(tag_id)
                 goodie_im_tags = []
                 for _ in formated_selection:
-                    print(_)
+                    # print(_)
                     im_id = _[0]
-                    print(current_tag)
-                    print(im_id)
+                    # print(current_tag)
+                    # print(im_id)
                     imgs_tups = list(map(lambda x: (x[1], x[2]), self.image_tags))
-                    print(imgs_tups)
+                    # print(imgs_tups)
                     unduped_pairs = list(filter(lambda x: x == (int(im_id), tag_id), imgs_tups))
-                    print(unduped_pairs)
+                    # print(unduped_pairs)
                     if not unduped_pairs:
                         goodie_im_tags.append((int(im_id), tag_id))
-                print(goodie_im_tags)
+                # print(goodie_im_tags)
                 if goodie_im_tags:
                     for _ in goodie_im_tags:
                         cur_im_id, cur_tag_id = _
@@ -611,7 +611,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
         self.box_choosen_tag_id = self.curs.execute(f'''
                             SELECT id from tags WHERE id = (SELECT id FROM tags WHERE name = '{self.box_choosen_tag}')            
                             ''').fetchall()[0][0]
-        print(self.box_choosen_tag_id)
+        # print(self.box_choosen_tag_id)
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
         formated_selection = []
         for _ in range(0, len(unformated_selection), 6):
@@ -619,7 +619,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
         if not mode:
             current_image = self.cur_im_id
             current_tag = self.tag_choose_box.currentText()
-            print(current_image)
+            # print(current_image)
             self.curs.execute(f'''
             DELETE FROM image_tags WHERE id_image = '{self.cur_im_id}' AND id_tag = '{self.box_choosen_tag_id}'
             ''')
@@ -629,7 +629,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
             for _ in formated_selection:
                 current_image_id = _[0]
                 current_tag = self.tag_choose_box.currentText()
-                print(current_image_id)
+                # print(current_image_id)
                 # print(self.curr_tag_id)
                 self.curs.execute(f'''
                             DELETE FROM image_tags WHERE id_image = '{current_image_id}' 
@@ -713,17 +713,17 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
 
     def delete_image(self):  # Функция удаления выбранного изображения(ий)
         unformated_selection = list(map(lambda x: x.text(), self.tableWidget.selectedItems()))
-        print(unformated_selection)
+        # print(unformated_selection)
         formated_selection = []
         for _ in range(0, len(unformated_selection), 6):
             formated_selection.append(unformated_selection[_:_ + 6])
-        print(formated_selection)
+        # print(formated_selection)
         valid = QMessageBox.question(
             self, '', f"Действительно удалить эти изображения(е)?",
             QMessageBox.Yes, QMessageBox.No)
         if valid == QMessageBox.Yes:
             for _ in formated_selection:
-                print(_)
+                # print(_)
                 if os.path.exists(_[-1]):
                     os.remove(_[-1])
                 self.curs.execute(f'''delete from images where id = '{_[0]}'
@@ -795,7 +795,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
         else:
             self.current_selected_tag_index = 0
             self.tag_deleted = False
-        print(self.current_selected_tag_text)
+        # print(self.current_selected_tag_text)
         self.tag_choose_box.clear()
         if self.tags:
             self.tag_choose_box.setEnabled(True)
@@ -891,7 +891,7 @@ class ViewWindow(QMainWindow, Ui_MainWindow):  # Основной виджет -
 
     def run(self):  # Функция, которая готовит всё к нормальной работе.
         self.repair_autoincrement()
-        print(self.images)
+        # print(self.images)
         self.run_time = get_formated_date(time()).split(' ')[::]
         self.run_dir = os.getcwd().replace('\\', '/')
 
