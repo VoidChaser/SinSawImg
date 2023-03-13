@@ -1,7 +1,7 @@
 import sys
 import os
 from time import ctime, time, sleep
-from SinSawViewUI import Ui_MainWindow
+from SinSawViewUI_new import Ui_MainWindow
 import datetime as dt
 from PyQt5.QtCore import Qt, QObject
 from PyQt5.QtGui import QPixmap
